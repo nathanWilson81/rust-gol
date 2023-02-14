@@ -6,5 +6,6 @@ You have to ctrl+c to get out of the terminal loop
 
 ## Todos
 
-- [] Figure out a better way to represent the negative indexes
-- [] Use something better than red and green Os to represent the cells
+- Figure out a better way to represent the negative indexes
+- Use something better than red and green Os to represent the cells
+- Add ability to break out of the loop without ctrl + c
