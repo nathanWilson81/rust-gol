@@ -82,19 +82,15 @@ impl GameBoard {
             let alive_count = alive_neighbors.len();
             match cell {
                 Cell::Alive(index, neighbor) => {
-                    let new_alive_cell = Cell::Alive(*index, neighbor.clone());
-                    let new_dead_cell = Cell::Dead(*index, neighbor.clone());
                     match alive_count {
-                        2 | 3 => new_state.push(new_alive_cell),
-                        _ => new_state.push(new_dead_cell),
+                        2 | 3 => new_state.push(Cell::Alive(*index, neighbor.clone())),
+                        _ => new_state.push(Cell::Dead(*index, neighbor.clone())),
                     };
                 }
                 Cell::Dead(index, neighbor) => {
-                    let new_alive_cell = Cell::Alive(*index, neighbor.clone());
-                    let new_dead_cell = Cell::Dead(*index, neighbor.clone());
                     match alive_count {
-                        3 => new_state.push(new_alive_cell),
-                        _ => new_state.push(new_dead_cell),
+                        3 => new_state.push(Cell::Alive(*index, neighbor.clone())),
+                        _ => new_state.push(Cell::Dead(*index, neighbor.clone())),
                     };
                 }
             }
