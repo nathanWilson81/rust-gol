@@ -3,16 +3,18 @@ use core::fmt;
 use std::thread;
 use std::time;
 
+// Instantiate the Cells with them knowing about their neighbor indexes
+
 enum Cell {
-    Alive(usize),
-    Dead(usize),
+    Alive(usize, Vec<usize>),
+    Dead(usize, Vec<usize>),
 }
 
 impl fmt::Debug for Cell {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Cell::Alive(_) => write!(f, "{}", "O".green()),
-            Cell::Dead(_) => write!(f, "{}", "O".red()),
+            Cell::Alive(_, _) => write!(f, "{}", "O".green()),
+            Cell::Dead(_, _) => write!(f, "{}", "O".red()),
         }
     }
 }
@@ -20,8 +22,7 @@ impl fmt::Debug for Cell {
 impl Cell {
     fn get_index(&self) -> &usize {
         match self {
-            Cell::Alive(index) => index,
-            Cell::Dead(index) => index,
+            Cell::Alive(index, _) | Cell::Dead(index, _) => index,
         }
     }
 
@@ -32,6 +33,7 @@ impl Cell {
 
         // Negative indexes
         // There has to be a better way
+        // Possibly HashMap with string indexes (Gross but makes this way easier to do)
         if index != &0 {
             if index < &10 {
                 if let Some(val) = game_state.get(index - 1) {
@@ -75,20 +77,24 @@ impl GameBoard {
             let neighbors = cell.get_neighbors(&self.game_state);
             let alive_neighbors: Vec<&Cell> = neighbors
                 .into_iter()
-                .filter(|neighbor| matches!(neighbor, Cell::Alive(_)))
+                .filter(|neighbor| matches!(neighbor, Cell::Alive(_, _)))
                 .collect();
             let alive_count = alive_neighbors.len();
             match cell {
-                Cell::Alive(index) => {
+                Cell::Alive(index, neighbor) => {
+                    let new_alive_cell = Cell::Alive(*index, neighbor.clone());
+                    let new_dead_cell = Cell::Dead(*index, neighbor.clone());
                     match alive_count {
-                        2 | 3 => new_state.push(Cell::Alive(*index)),
-                        _ => new_state.push(Cell::Dead(*index)),
+                        2 | 3 => new_state.push(new_alive_cell),
+                        _ => new_state.push(new_dead_cell),
                     };
                 }
-                Cell::Dead(index) => {
+                Cell::Dead(index, neighbor) => {
+                    let new_alive_cell = Cell::Alive(*index, neighbor.clone());
+                    let new_dead_cell = Cell::Dead(*index, neighbor.clone());
                     match alive_count {
-                        3 => new_state.push(Cell::Alive(*index)),
-                        _ => new_state.push(Cell::Dead(*index)),
+                        3 => new_state.push(new_alive_cell),
+                        _ => new_state.push(new_dead_cell),
                     };
                 }
             }
@@ -103,9 +109,9 @@ fn main() {
 
     for i in 0..usize::pow(size, 2) {
         initial_state.push(if rand::random() {
-            Cell::Dead(i)
+            Cell::Dead(i, Vec::new())
         } else {
-            Cell::Alive(i)
+            Cell::Alive(i, Vec::new())
         })
     }
 
