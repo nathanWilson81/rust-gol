@@ -3,8 +3,6 @@ use core::fmt;
 use std::thread;
 use std::time;
 
-// Instantiate the Cells with them knowing about their neighbor indexes
-
 enum Cell {
     Alive(usize, Vec<usize>),
     Dead(usize, Vec<usize>),
@@ -20,47 +18,17 @@ impl fmt::Debug for Cell {
 }
 
 impl Cell {
-    fn get_index(&self) -> &usize {
-        match self {
-            Cell::Alive(index, _) | Cell::Dead(index, _) => index,
-        }
-    }
-
-    fn get_neighbors<'a>(&'a self, game_state: &'a [Cell]) -> Vec<&Cell> {
+    fn get_neighbors<'a>(&'a self, game_state: &'a Vec<Cell>) -> Vec<&Cell> {
         let mut neighbors: Vec<&Cell> = Vec::new();
-        let index = self.get_index();
-        let indexes = vec![1, 9, 10, 11];
+        let cell_neighbors = match self {
+            Cell::Alive(_, neighbors) | Cell::Dead(_, neighbors) => neighbors,
+        };
 
-        // Negative indexes
-        // There has to be a better way
-        // Possibly HashMap with string indexes (Gross but makes this way easier to do)
-        if index != &0 {
-            if index < &10 {
-                if let Some(val) = game_state.get(index - 1) {
-                    neighbors.push(val)
-                }
-            } else if index % 10 == 0 {
-                if let Some(val) = game_state.get(index - 10) {
-                    neighbors.push(val)
-                }
-                if let Some(val) = game_state.get(index - 9) {
-                    neighbors.push(val)
-                }
-            } else {
-                for i in &indexes {
-                    if let Some(val) = game_state.get(index - i) {
-                        neighbors.push(val)
-                    }
-                }
+        cell_neighbors.iter().for_each(|neighbor| {
+            if let Some(neighbor) = game_state.get(*neighbor) {
+                neighbors.push(neighbor.clone())
             }
-        }
-
-        // Positive indexes
-        for i in indexes {
-            if let Some(val) = game_state.get(index + i) {
-                neighbors.push(val)
-            }
-        }
+        });
 
         neighbors
     }
@@ -81,16 +49,16 @@ impl GameBoard {
                 .collect();
             let alive_count = alive_neighbors.len();
             match cell {
-                Cell::Alive(index, neighbor) => {
+                Cell::Alive(index, neighbors) => {
                     match alive_count {
-                        2 | 3 => new_state.push(Cell::Alive(*index, neighbor.clone())),
-                        _ => new_state.push(Cell::Dead(*index, neighbor.clone())),
+                        2 | 3 => new_state.push(Cell::Alive(*index, neighbors.clone())),
+                        _ => new_state.push(Cell::Dead(*index, neighbors.clone())),
                     };
                 }
-                Cell::Dead(index, neighbor) => {
+                Cell::Dead(index, neighbors) => {
                     match alive_count {
-                        3 => new_state.push(Cell::Alive(*index, neighbor.clone())),
-                        _ => new_state.push(Cell::Dead(*index, neighbor.clone())),
+                        3 => new_state.push(Cell::Alive(*index, neighbors.clone())),
+                        _ => new_state.push(Cell::Dead(*index, neighbors.clone())),
                     };
                 }
             }
@@ -100,14 +68,23 @@ impl GameBoard {
 }
 
 fn main() {
-    let size: usize = 10;
+    let size: i32 = 10;
+    let chunk_rate: usize = 10;
     let mut initial_state = Vec::new();
+    let indexes: Vec<i32> = vec![-1, -9, -10, -11, 1, 9, 10, 11];
 
-    for i in 0..usize::pow(size, 2) {
+    for i in 0..i32::pow(size, 2) {
+        let index = i as usize;
+        let neighbors = indexes
+            .iter()
+            .map(|index| i - index)
+            .filter(|index| i32::is_positive(*index))
+            .map(|index| index as usize)
+            .collect();
         initial_state.push(if rand::random() {
-            Cell::Dead(i, Vec::new())
+            Cell::Dead(index, neighbors)
         } else {
-            Cell::Alive(i, Vec::new())
+            Cell::Alive(index, neighbors)
         })
     }
 
@@ -115,14 +92,14 @@ fn main() {
         game_state: initial_state,
     };
 
-    for row in board.game_state.chunks(size) {
+    for row in board.game_state.chunks(chunk_rate) {
         println!("{row:?}")
     }
     loop {
         print!("{}[2J", 27 as char); // Clear terminal with magic
         let new_state = GameBoard::get_next_state(&board);
         board.game_state = new_state;
-        for row in board.game_state.chunks(size) {
+        for row in board.game_state.chunks(chunk_rate) {
             println!("{row:?}")
         }
         thread::sleep(time::Duration::from_millis(500))
